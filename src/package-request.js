@@ -370,10 +370,9 @@ export default class PackageRequest {
   }
 
   /**
-   * Gets all of the outdated packages and sorts them appropriately
+   * Gets all the explicit dependencies and sorts them appropriately
    */
-
-  static async getOutdatedPackages(
+  static async getExplicitDependencies(
     lockfile: Lockfile,
     install: Install,
     config: Config,
@@ -440,10 +439,27 @@ export default class PackageRequest {
       }),
     );
 
+    const orderByName = (depA, depB) => depA.name.localeCompare(depB.name);
+    return deps.sort(orderByName);
+  }
+
+  /**
+   * Gets all of the outdated packages and sorts them appropriately
+   */
+  static async getOutdatedPackages(
+    lockfile: Lockfile,
+    install: Install,
+    config: Config,
+    reporter: Reporter,
+    filterByPatterns: ?Array<string>,
+    flags: ?Object,
+  ): Promise<Array<Dependency>> {
+    const deps = await this.getExplicitDependencies(lockfile, install, config, reporter, filterByPatterns, flags);
+
     // Make sure to always output `exotic` versions to be compatible with npm
     const isDepOld = ({current, latest, wanted}) =>
       latest === 'exotic' || (semver.lt(current, wanted) || semver.lt(current, latest));
-    const orderByName = (depA, depB) => depA.name.localeCompare(depB.name);
-    return deps.filter(isDepOld).sort(orderByName);
+
+    return deps.filter(isDepOld);
   }
 }
